@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous AI Code Review Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="mb-8 border-b border-slate-800 pb-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-indigo-400">🤖 Local AI Code Review Agent</h1>
+                <p class="text-slate-400 text-sm mt-1">نظام عميل ذكاء اصطناعي محلي خاص لمراجعة الكود، توليد الاختبارات، والإصلاح التلقائي.</p>
+            </div>
+            <span class="bg-emerald-900 text-emerald-300 text-xs px-3 py-1 rounded-full border border-emerald-700">Offline / Privacy-First</span>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- قسم إدخال الكود -->
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg flex flex-col">
+                <label for="sourceCode" class="block text-sm font-semibold mb-2 text-slate-300">أدخل الكود المراد مراجعته:</label>
+                <textarea id="sourceCode" rows="16" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 font-mono text-sm text-emerald-400 focus:outline-none focus:border-indigo-500 resize-none" placeholder="اكتب أو الصق الكود هنا..."></textarea>
+                
+                <div class="flex flex-wrap gap-3 mt-4">
+                    <button onclick="runAction('review')" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200 shadow">🔍 مراجعة وتحليل</button>
+                    <button onclick="runAction('test-gen')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200 shadow">🧪 توليد Unit Tests</button>
+                    <button onclick="runAction('patch')" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200 shadow">⚡ إصلاح تلقائي (Auto-Patch)</button>
+                </div>
+            </div>
+
+            <!-- قسم المخرجات والنتائج -->
+            <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-lg flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-semibold text-slate-300">نتائج العميل المستقل (Agent Output):</span>
+                    <button onclick="clearOutput()" class="text-xs text-slate-400 hover:text-red-400">مسح النتيجة</button>
+                </div>
+                <div id="loader" class="hidden flex items-center justify-center flex-1 text-indigo-400">
+                    <svg class="animate-spin h-8 w-8 mr-3 text-indigo-500" viewBox="0 0 24 24" fill="none">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    جاري المعالجة محلياً عبر Ollama...
+                </div>
+                <pre id="outputResult" class="w-full h-96 bg-slate-900 border border-slate-700 rounded-lg p-3 font-mono text-sm text-slate-200 overflow-y-auto whitespace-pre-wrap">ستظهر النتائج هنا بعد اختيار إحدى العمليات...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:8000/api";
+
+        async function runAction(endpointType) {
+            const code = document.getElementById('sourceCode').value;
+            const outputEl = document.getElementById('outputResult');
+            const loaderEl = document.getElementById('loader');
+
+            if (!code.trim()) {
+                alert('الرجاء إدخال بعض الكود أولاً!');
+                return;
+            }
+
+            loaderEl.classList.remove('hidden');
+            outputEl.textContent = '';
+
+            try {
+                const response = await fetch(`${API_BASE}/${endpointType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+
+                const data = await response.json();
+                loaderEl.classList.add('hidden');
+
+                if (response.ok) {
+                    if (data.analysis) outputEl.textContent = data.analysis;
+                    else if (data.unit_tests) outputEl.textContent = data.unit_tests;
+                    else if (data.patched_code) outputEl.textContent = data.patched_code;
+                    else outputEl.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    outputEl.textContent = `خطأ: ${data.detail || 'حدث خطأ غير متوقع'}`;
+                }
+            } catch (error) {
+                loaderEl.classList.add('hidden');
+                outputEl.textContent = `خطأ في الاتصال بالخادم الخلفي (تأكد من تشغيل FastAPI): \n${error.message}`;
+            }
+        }
+
+        function clearOutput() {
+            document.getElementById('outputResult').textContent = 'ستظهر النتائج هنا بعد اختيار إحدى العمليات...';
+        }
+    </script>
+</body>
+</html>
